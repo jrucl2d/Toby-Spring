@@ -15,7 +15,6 @@ public class DaoTestFactory {
     @Bean
     public UserDao userDao() {
         UserDao userDao = new UserDao(dataSource());
-        userDao.setJdbcContext(jdbcContext());
         return userDao;
     }
 

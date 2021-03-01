@@ -6,6 +6,7 @@ import springbook.user.dao.UserDao;
 import springbook.user.domain.User;
 
 import java.sql.SQLException;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -72,5 +73,38 @@ public class UserDaoTest {
 
         userDao.add(user3);
         assertThat(userDao.getCount()).isEqualTo(3);
+    }
+
+    @Test
+    void getAll() throws SQLException {
+        userDao.deleteAll();
+        
+        // 데이터가 없는 경우
+        List<User> users0 = userDao.getAll();
+        assertThat(users0.size()).isEqualTo(0);
+
+        userDao.add(user1);
+        List<User> users1 = userDao.getAll();
+        assertThat(users1.size()).isEqualTo(1);
+        checkSameUser(user1, users1.get(0));
+
+        userDao.add(user2);
+        List<User> users2 = userDao.getAll();
+        assertThat(users2.size()).isEqualTo(2);
+        checkSameUser(user1, users2.get(0));
+        checkSameUser(user2, users2.get(1));
+
+        userDao.add(user3);
+        List<User> users3 = userDao.getAll();
+        assertThat(users3.size()).isEqualTo(3);
+        checkSameUser(user1, users3.get(0));
+        checkSameUser(user2, users3.get(1));
+        checkSameUser(user3, users3.get(2));
+    }
+
+    private void checkSameUser(User u1, User u2){
+        assertThat(u1.getId()).isEqualTo(u2.getId());
+        assertThat(u1.getName()).isEqualTo(u1.getName());
+        assertThat(u1.getPassword()).isEqualTo(u1.getPassword());
     }
 }

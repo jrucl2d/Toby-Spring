@@ -24,7 +24,6 @@ public class UserDaoNoSpringTest {
         userDao = new UserDao();
         DataSource dataSource = new SingleConnectionDataSource("jdbc:mysql://localhost/testdb", "test",
                 "test1234", true);
-        userDao.setDataSource(dataSource);
         user1 = new User("1", "YU", "1234");
         user2 = new User("2", "YU2", "12345");
         user3 = new User("3", "YU3", "123456");
