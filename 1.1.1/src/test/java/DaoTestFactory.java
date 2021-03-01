@@ -5,6 +5,7 @@ import springbook.user.dao.ConnectionMaker;
 import springbook.user.dao.CountingConnectionMaker;
 import springbook.user.dao.SimpleConnectionMaker;
 import springbook.user.dao.UserDao;
+import springbook.user.dao.jdbcStrategyPattern.JdbcContext;
 
 import javax.sql.DataSource;
 
@@ -14,7 +15,15 @@ public class DaoTestFactory {
     @Bean
     public UserDao userDao() {
         UserDao userDao = new UserDao(dataSource());
+        userDao.setJdbcContext(jdbcContext());
         return userDao;
+    }
+
+    @Bean
+    public JdbcContext jdbcContext() {
+        JdbcContext jdbcContext = new JdbcContext();
+        jdbcContext.setDataSource(dataSource());
+        return jdbcContext;
     }
 
     @Bean
