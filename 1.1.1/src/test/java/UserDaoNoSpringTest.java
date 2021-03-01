@@ -1,10 +1,9 @@
-import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import springbook.user.dao.DaoFactory;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.User;
 
@@ -14,30 +13,23 @@ import java.sql.SQLException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class UserDaoTest {
-    // 테스트를 수행하는 데 필요한 정보나 오브젝트 -> 픽스쳐
-    // 픽스쳐는 테스트에서 반복적으로 사용되므로 @BeforeEach로 설정하는 것이 좋다.
-    private UserDao userDao;
+public class UserDaoNoSpringTest {
+    UserDao userDao;
     private User user1;
     private User user2;
     private User user3;
-    private static ApplicationContext ac;
-
-    @BeforeAll
-    static void firstSetup() {
-        ac = new AnnotationConfigApplicationContext(DaoTestFactory.class);
-    }
 
     @BeforeEach
     void setup() {
-//        System.out.println(this.ac);
-//        System.out.println(this);
-        userDao = ac.getBean("userDao", UserDao.class);
+        userDao = new UserDao();
+        DataSource dataSource = new SingleConnectionDataSource("jdbc:mysql://localhost/testdb", "test",
+                "test1234", true);
+        userDao.setDataSource(dataSource);
         user1 = new User("1", "YU", "1234");
         user2 = new User("2", "YU2", "12345");
         user3 = new User("3", "YU3", "123456");
     }
-    
+
     @Test // Junit5부터 public 아니어도 됨
     @DisplayName("User DAO add, get 테스트")
     void addAndGet() throws SQLException {

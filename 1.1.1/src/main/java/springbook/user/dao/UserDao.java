@@ -7,7 +7,14 @@ import javax.sql.DataSource;
 import java.sql.*;
 
 public class UserDao {
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     private DataSource dataSource;
+
+    public UserDao() {
+    }
 
     public UserDao(DataSource dataSource) {
         this.dataSource = dataSource;
