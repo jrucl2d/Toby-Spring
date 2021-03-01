@@ -26,8 +26,8 @@ public class UserDao {
 
     // 로컬 클래스의 코드에서 외부 메소드 로컬 변수에 접근할 때는 final로 해줘야 한다.
     public void add(final User user) throws SQLException {
-        // 로컬 클래스로 선언
-//        class AddStatement implements StatementStrategy{
+//        // 익명 클래스 사용
+//        StatementStrategy strategy = new StatementStrategy() {
 //            @Override
 //            public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
 //                PreparedStatement ps = null;
@@ -37,31 +37,14 @@ public class UserDao {
 //                ps.setString(3, user.getPassword());
 //                return ps;
 //            }
-//        }
-        // 익명 클래스 사용
-        StatementStrategy strategy = new StatementStrategy() {
-            @Override
-            public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
-                PreparedStatement ps = null;
-                ps = c.prepareStatement("insert into users(id, name, password) values(?, ?, ?)");
-                ps.setString(1, user.getId());
-                ps.setString(2, user.getName());
-                ps.setString(3, user.getPassword());
-                return ps;
-            }
-        };
-        this.jdbcContext.workWithStatementStrategy(strategy);
+//        };
+//        this.jdbcContext.workWithStatementStrategy(strategy);
+        this.jdbcContext.executeSql("insert into users(id, name, password) values(?, ?, ?)",
+                user.getId(), user.getName(), user.getPassword());
     }
 
     public void deleteAll() throws SQLException {
-        StatementStrategy strategy = new StatementStrategy() {
-            @Override
-            public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
-                PreparedStatement ps = c.prepareStatement("delete from users");
-                return ps;
-            }
-        }; // 전략 선택
-        this.jdbcContext.workWithStatementStrategy(strategy); // 컨텍스트를 호출
+        this.jdbcContext.executeSql("delete from users");
     }
 
     public User get(String id) throws SQLException {
@@ -136,4 +119,5 @@ public class UserDao {
             }
         }
     }
+
 }
