@@ -4,7 +4,7 @@ import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import springbook.user.dao.ConnectionMaker;
 import springbook.user.dao.CountingConnectionMaker;
 import springbook.user.dao.SimpleConnectionMaker;
-import springbook.user.dao.UserDao;
+import springbook.user.dao.UserDaoJdbc;
 import springbook.user.dao.jdbcStrategyPattern.JdbcContext;
 
 import javax.sql.DataSource;
@@ -13,9 +13,9 @@ import javax.sql.DataSource;
 public class DaoTestFactory {
     
     @Bean
-    public UserDao userDao() {
-        UserDao userDao = new UserDao(dataSource());
-        return userDao;
+    public UserDaoJdbc userDao() {
+        UserDaoJdbc userDaoJdbc = new UserDaoJdbc(dataSource());
+        return userDaoJdbc;
     }
 
     @Bean
