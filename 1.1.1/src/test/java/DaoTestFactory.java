@@ -6,12 +6,25 @@ import springbook.user.dao.CountingConnectionMaker;
 import springbook.user.dao.SimpleConnectionMaker;
 import springbook.user.dao.UserDaoJdbc;
 import springbook.user.dao.jdbcStrategyPattern.JdbcContext;
+import springbook.user.service.NormalUserLevelUpgradePolicy;
+import springbook.user.service.UserLevelUpgradePolicy;
+import springbook.user.service.UserService;
 
 import javax.sql.DataSource;
 
 @Configuration
 public class DaoTestFactory {
-    
+
+    @Bean
+    public UserService userService() {
+        return new UserService(userDao(), userLevelUpgradePolicy());
+    }
+
+    @Bean
+    public UserLevelUpgradePolicy userLevelUpgradePolicy() {
+        return new NormalUserLevelUpgradePolicy(userDao());
+    }
+
     @Bean
     public UserDaoJdbc userDao() {
         UserDaoJdbc userDaoJdbc = new UserDaoJdbc(dataSource());

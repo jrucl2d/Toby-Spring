@@ -7,6 +7,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator;
 import org.springframework.jdbc.support.SQLExceptionTranslator;
 import springbook.user.dao.UserDaoJdbc;
+import springbook.user.domain.Level;
 import springbook.user.domain.User;
 
 import javax.sql.DataSource;
@@ -36,9 +37,9 @@ public class UserDaoJdbcTest {
 //        System.out.println(this.ac);
 //        System.out.println(this);
         userDaoJdbc = ac.getBean("userDao", UserDaoJdbc.class);
-        user1 = new User("1", "YU", "1234");
-        user2 = new User("2", "YU2", "12345");
-        user3 = new User("3", "YU3", "123456");
+        user1 = new User("1", "YU", "1234", Level.BASIC, 1, 0);
+        user2 = new User("2", "YU2", "12345", Level.SILVER, 55, 10);
+        user3 = new User("3", "YU3", "123456", Level.GOLD, 100, 40);
         dataSource = ac.getBean("dataSource", DataSource.class);
     }
     
@@ -53,12 +54,10 @@ public class UserDaoJdbcTest {
         assertThat(userDaoJdbc.getCount()).isEqualTo(2);
 
         User userget1 = userDaoJdbc.get("1");
-        assertThat(user1.getName()).isEqualTo(userget1.getName());
-        assertThat(user1.getPassword()).isEqualTo(userget1.getPassword());
+        checkSameUser(user1, userget1);
 
         User userget2 = userDaoJdbc.get("2");
-        assertThat(user2.getName()).isEqualTo(userget2.getName());
-        assertThat(user2.getPassword()).isEqualTo(userget2.getPassword());
+        checkSameUser(user2, userget2);
     }
 
     @Test
@@ -109,10 +108,34 @@ public class UserDaoJdbcTest {
         checkSameUser(user3, users3.get(2));
     }
 
+    @Test
+    void update() {
+        userDaoJdbc.deleteAll();
+
+        userDaoJdbc.add(user1); // 변경될 사용자
+        userDaoJdbc.add(user2); // 변경되지 않을 사용자
+        
+        user1.setName("바보");
+        user1.setPassword("p1");
+        user1.setLevel(Level.GOLD);
+        user1.setLogin(1000);
+        user1.setRecommend(999);
+        userDaoJdbc.update(user1);
+
+        User user1update = userDaoJdbc.get(user1.getId());
+        checkSameUser(user1, user1update);
+
+        User user2update = userDaoJdbc.get(user2.getId());
+        checkSameUser(user2, user2update); // where절이 있어야 작동하도록
+    }
+
     private void checkSameUser(User u1, User u2){
         assertThat(u1.getId()).isEqualTo(u2.getId());
-        assertThat(u1.getName()).isEqualTo(u1.getName());
-        assertThat(u1.getPassword()).isEqualTo(u1.getPassword());
+        assertThat(u1.getName()).isEqualTo(u2.getName());
+        assertThat(u1.getPassword()).isEqualTo(u2.getPassword());
+        assertThat(u1.getLevel()).isEqualTo(u2.getLevel());
+        assertThat(u1.getLogin()).isEqualTo(u2.getLogin());
+        assertThat(u1.getRecommend()).isEqualTo(u2.getRecommend());
     }
 
     @Test
