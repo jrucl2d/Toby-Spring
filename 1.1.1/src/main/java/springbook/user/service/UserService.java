@@ -11,7 +11,12 @@ import springbook.user.domain.User;
 public class UserService {
 
     private final UserDao userDao; // DI
-    private final UserLevelUpgradePolicy userLevelUpgradePolicy;
+
+    public void setUserLevelUpgradePolicy(UserLevelUpgradePolicy userLevelUpgradePolicy) {
+        this.userLevelUpgradePolicy = userLevelUpgradePolicy;
+    }
+
+    private UserLevelUpgradePolicy userLevelUpgradePolicy;
     private final PlatformTransactionManager transactionManager;
 
     public UserService(UserDao userDao, UserLevelUpgradePolicy userLevelUpgradePolicy, PlatformTransactionManager transactionManager) {

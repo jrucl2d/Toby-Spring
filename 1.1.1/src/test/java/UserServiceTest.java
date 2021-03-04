@@ -4,6 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.mail.MailException;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
@@ -12,6 +15,7 @@ import springbook.user.service.NormalUserLevelUpgradePolicy;
 import springbook.user.service.UserService;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,7 +28,7 @@ import static springbook.user.service.NormalUserLevelUpgradePolicy.MIN_RECCOMEND
 public class UserServiceTest {
     private static ApplicationContext ac;
     private UserService userService;
-    private DataSource dataSource;
+    private MailSender mailSender;
     private PlatformTransactionManager transactionManager;
     private UserDao userDao;
     private List<User> users;
@@ -35,22 +39,26 @@ public class UserServiceTest {
     }
     @BeforeEach
     void beforeEach(){
-        this.dataSource = ac.getBean("dataSource", DataSource.class);
         this.userService = ac.getBean("userService", UserService.class);
         this.userDao = ac.getBean("userDao", UserDao.class);
+        this.mailSender = ac.getBean("mailSender", MailSender.class);
         this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
         this.users = Arrays.asList(
-                new User("1", "YU", "1234", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER - 1, 0),
-                new User("2", "YU2", "12345", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
-                new User("3", "YU3", "123456", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD - 1),
-                new User("4", "YU4", "1234567", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD),
-                new User("5", "YU5", "12345678", Level.GOLD, 100, Integer.MAX_VALUE));
+                new User("1", "YU", "1234", "a@a.com", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER - 1, 0),
+                new User("2", "YU2", "12345", "b@b.com", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
+                new User("3", "YU3", "123456", "c@c.com", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD - 1),
+                new User("4", "YU4", "1234567", "d@d.com", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD),
+                new User("5", "YU5", "12345678", "e@e.com", Level.GOLD, 100, Integer.MAX_VALUE));
     }
     @Test
     @DisplayName("레벨 업그레이드가 잘 되는지")
     void upgradeLevels() throws Exception {
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
+
+        MockMailSender mockMailSender = new MockMailSender();
+        NormalUserLevelUpgradePolicy userLevelUpgradePolicy = new NormalUserLevelUpgradePolicy(userDao, mockMailSender);
+        userService.setUserLevelUpgradePolicy(userLevelUpgradePolicy);
 
         userService.upgradeLevels();
 
@@ -59,6 +67,11 @@ public class UserServiceTest {
         checkLevel(users.get(2), Level.SILVER);
         checkLevel(users.get(3), Level.GOLD);
         checkLevel(users.get(4), Level.GOLD);
+
+        List<String> requests = mockMailSender.getRequests();
+        assertThat(requests.size()).isEqualTo(2);
+        assertThat(requests.get(0)).isEqualTo(users.get(1).getEmail());
+        assertThat(requests.get(1)).isEqualTo(users.get(3).getEmail());
     }
 
     @Test
@@ -106,10 +119,10 @@ public class UserServiceTest {
             assertThat(userupdate.getLevel()).isEqualTo(user.getLevel());
         }
     }
-    static class TestUserUpgradePolicy extends NormalUserLevelUpgradePolicy {
+    class TestUserUpgradePolicy extends NormalUserLevelUpgradePolicy {
         private String id;
         public TestUserUpgradePolicy(UserDao userDao, String id) {
-            super(userDao);
+            super(userDao, mailSender);
             this.id = id;
         }
 
@@ -121,5 +134,21 @@ public class UserServiceTest {
     }
     static class TestUserServiceException extends RuntimeException{
 
+    }
+    class MockMailSender implements MailSender {
+        private List<String> requests = new ArrayList<>();
+        public List<String> getRequests() {
+            return requests;
+        }
+
+        @Override
+        public void send(SimpleMailMessage simpleMessage) throws MailException {
+            requests.add(simpleMessage.getTo()[0]); // 전송 요청 받은 이메일 주소
+        }
+
+        @Override
+        public void send(SimpleMailMessage... simpleMessages) throws MailException {
+
+        }
     }
 }

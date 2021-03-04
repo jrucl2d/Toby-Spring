@@ -2,12 +2,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.transaction.PlatformTransactionManager;
 import springbook.user.dao.ConnectionMaker;
 import springbook.user.dao.CountingConnectionMaker;
 import springbook.user.dao.SimpleConnectionMaker;
 import springbook.user.dao.UserDaoJdbc;
 import springbook.user.dao.jdbcStrategyPattern.JdbcContext;
+import springbook.user.service.DummyMailSender;
 import springbook.user.service.NormalUserLevelUpgradePolicy;
 import springbook.user.service.UserLevelUpgradePolicy;
 import springbook.user.service.UserService;
@@ -28,8 +31,14 @@ public class DaoTestFactory {
     }
 
     @Bean
+    public MailSender mailSender() {
+        MailSender mailSender = new DummyMailSender();
+        return mailSender;
+    }
+
+    @Bean
     public UserLevelUpgradePolicy userLevelUpgradePolicy() {
-        return new NormalUserLevelUpgradePolicy(userDao());
+        return new NormalUserLevelUpgradePolicy(userDao(), mailSender());
     }
 
     @Bean

@@ -37,9 +37,9 @@ public class UserDaoJdbcTest {
 //        System.out.println(this.ac);
 //        System.out.println(this);
         userDaoJdbc = ac.getBean("userDao", UserDaoJdbc.class);
-        user1 = new User("1", "YU", "1234", Level.BASIC, 1, 0);
-        user2 = new User("2", "YU2", "12345", Level.SILVER, 55, 10);
-        user3 = new User("3", "YU3", "123456", Level.GOLD, 100, 40);
+        user1 = new User("1", "YU", "1234", "yu1234@a.com", Level.BASIC, 1, 0);
+        user2 = new User("2", "YU2", "12345", "yu1234@b.com", Level.SILVER, 55, 10);
+        user3 = new User("3", "YU3", "123456", "yu1234@c.com", Level.GOLD, 100, 40);
         dataSource = ac.getBean("dataSource", DataSource.class);
     }
     
