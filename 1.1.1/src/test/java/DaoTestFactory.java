@@ -1,6 +1,8 @@
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+import org.springframework.transaction.PlatformTransactionManager;
 import springbook.user.dao.ConnectionMaker;
 import springbook.user.dao.CountingConnectionMaker;
 import springbook.user.dao.SimpleConnectionMaker;
@@ -16,8 +18,13 @@ import javax.sql.DataSource;
 public class DaoTestFactory {
 
     @Bean
+    public PlatformTransactionManager transactionManager() {
+        return new DataSourceTransactionManager(dataSource());
+    }
+
+    @Bean
     public UserService userService() {
-        return new UserService(dataSource(), userDao(), userLevelUpgradePolicy());
+        return new UserService(userDao(), userLevelUpgradePolicy(), transactionManager());
     }
 
     @Bean

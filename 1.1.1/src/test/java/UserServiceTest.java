@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.transaction.PlatformTransactionManager;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
@@ -24,6 +25,7 @@ public class UserServiceTest {
     private static ApplicationContext ac;
     private UserService userService;
     private DataSource dataSource;
+    private PlatformTransactionManager transactionManager;
     private UserDao userDao;
     private List<User> users;
 
@@ -36,6 +38,7 @@ public class UserServiceTest {
         this.dataSource = ac.getBean("dataSource", DataSource.class);
         this.userService = ac.getBean("userService", UserService.class);
         this.userDao = ac.getBean("userDao", UserDao.class);
+        this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
         this.users = Arrays.asList(
                 new User("1", "YU", "1234", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER - 1, 0),
                 new User("2", "YU2", "12345", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
@@ -78,7 +81,7 @@ public class UserServiceTest {
 
     @Test
     void upgradeAllOrNothing() throws Exception {
-        UserService testUserService = new UserService(dataSource, userDao, new TestUserUpgradePolicy(userDao, "4"));
+        UserService testUserService = new UserService(userDao, new TestUserUpgradePolicy(userDao, "4"), transactionManager);
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
 
