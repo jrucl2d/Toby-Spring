@@ -17,7 +17,7 @@ public class DaoTestFactory {
 
     @Bean
     public UserService userService() {
-        return new UserService(userDao(), userLevelUpgradePolicy());
+        return new UserService(dataSource(), userDao(), userLevelUpgradePolicy());
     }
 
     @Bean
