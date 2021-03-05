@@ -1,5 +1,5 @@
 package springbook.user.service;
 
 public interface UserLevelUpgradePolicy {
-    public void upgradeLevels() throws Exception;
+    public void upgradeLevels();
 }

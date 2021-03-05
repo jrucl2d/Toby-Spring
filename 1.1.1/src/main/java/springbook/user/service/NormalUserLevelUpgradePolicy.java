@@ -30,7 +30,7 @@ public class NormalUserLevelUpgradePolicy implements UserLevelUpgradePolicy{
     }
 
     @Override
-    public void upgradeLevels() throws Exception {
+    public void upgradeLevels() {
         List<User> users = userDao.getAll();
         for (User user : users) {
             if(canUpgradeLevel(user)){

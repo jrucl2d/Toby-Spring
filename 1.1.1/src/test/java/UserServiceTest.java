@@ -8,13 +8,15 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
+import springbook.user.dao.MockUserDao;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
 import springbook.user.service.NormalUserLevelUpgradePolicy;
 import springbook.user.service.UserService;
+import springbook.user.service.UserServiceImpl;
+import springbook.user.service.UserServiceTx;
 
-import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +29,7 @@ import static springbook.user.service.NormalUserLevelUpgradePolicy.MIN_RECCOMEND
 
 public class UserServiceTest {
     private static ApplicationContext ac;
-    private UserService userService;
+    private UserServiceTx userService;
     private MailSender mailSender;
     private PlatformTransactionManager transactionManager;
     private UserDao userDao;
@@ -39,7 +41,7 @@ public class UserServiceTest {
     }
     @BeforeEach
     void beforeEach(){
-        this.userService = ac.getBean("userService", UserService.class);
+        this.userService = ac.getBean("userService", UserServiceTx.class);
         this.userDao = ac.getBean("userDao", UserDao.class);
         this.mailSender = ac.getBean("mailSender", MailSender.class);
         this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
@@ -52,26 +54,29 @@ public class UserServiceTest {
     }
     @Test
     @DisplayName("레벨 업그레이드가 잘 되는지")
-    void upgradeLevels() throws Exception {
-        userDao.deleteAll();
-        for(User user : users) userDao.add(user);
-
+    void upgradeLevels() {
         MockMailSender mockMailSender = new MockMailSender();
-        NormalUserLevelUpgradePolicy userLevelUpgradePolicy = new NormalUserLevelUpgradePolicy(userDao, mockMailSender);
-        userService.setUserLevelUpgradePolicy(userLevelUpgradePolicy);
+        MockUserDao mockUserDao = new MockUserDao(this.users);
+        NormalUserLevelUpgradePolicy userLevelUpgradePolicy = new NormalUserLevelUpgradePolicy(mockUserDao, mockMailSender);
+        UserServiceImpl userServiceImpl = new UserServiceImpl(mockUserDao, userLevelUpgradePolicy);
 
+        userServiceImpl.setUserLevelUpgradePolicy(userLevelUpgradePolicy);
+        userService.setUserService(userServiceImpl);
         userService.upgradeLevels();
 
-        checkLevel(users.get(0), Level.BASIC);
-        checkLevel(users.get(1), Level.SILVER);
-        checkLevel(users.get(2), Level.SILVER);
-        checkLevel(users.get(3), Level.GOLD);
-        checkLevel(users.get(4), Level.GOLD);
+        List<User> updated = mockUserDao.getUpdated();
+        assertThat(updated.size()).isEqualTo(2);
+        checkUserAndLevel(updated.get(0), "2", Level.SILVER);
+        checkUserAndLevel(updated.get(1), "4", Level.GOLD);
 
         List<String> requests = mockMailSender.getRequests();
         assertThat(requests.size()).isEqualTo(2);
         assertThat(requests.get(0)).isEqualTo(users.get(1).getEmail());
         assertThat(requests.get(1)).isEqualTo(users.get(3).getEmail());
+    }
+    private void checkUserAndLevel(User updated, String expectedId, Level expectedLevel) {
+        assertThat(updated.getId()).isEqualTo(expectedId);
+        assertThat(updated.getLevel()).isEqualTo(expectedLevel);
     }
 
     @Test
@@ -94,7 +99,8 @@ public class UserServiceTest {
 
     @Test
     void upgradeAllOrNothing() throws Exception {
-        UserService testUserService = new UserService(userDao, new TestUserUpgradePolicy(userDao, "4"), transactionManager);
+        UserServiceImpl testUserServiceImpl = new UserServiceImpl(userDao, new TestUserUpgradePolicy(userDao, "4"));
+        UserServiceTx testUserService = new UserServiceTx(testUserServiceImpl, transactionManager);
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
 
