@@ -3,6 +3,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.mail.MailException;
@@ -27,7 +28,8 @@ import static springbook.user.service.NormalUserLevelUpgradePolicy.MIN_RECCOMEND
 
 public class UserServiceTest {
     private static ApplicationContext ac;
-    private UserServiceTx userService;
+    private UserService userService;
+    private Object proxyFactoryBean;
     private MailSender mailSender;
     private PlatformTransactionManager transactionManager;
     private UserDao userDao;
@@ -39,7 +41,7 @@ public class UserServiceTest {
     }
     @BeforeEach
     void beforeEach(){
-        this.userService = ac.getBean("userService", UserServiceTx.class);
+        this.proxyFactoryBean = ac.getBean("proxyFactoryBean");
         this.userDao = ac.getBean("userDao", UserDao.class);
         this.mailSender = ac.getBean("mailSender", MailSender.class);
         this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
@@ -61,7 +63,7 @@ public class UserServiceTest {
         UserServiceImpl userServiceImpl = new UserServiceImpl(mockUserDao, userLevelUpgradePolicy);
 
         userServiceImpl.setUserLevelUpgradePolicy(userLevelUpgradePolicy);
-        userService.setUserService(userServiceImpl);
+//        userService.setUserService(userServiceImpl);
         userService.upgradeLevels();
 
         // any : 파라미터 내용을 무시하고 호출 횟수만 확인 가능
