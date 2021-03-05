@@ -12,10 +12,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
-import springbook.user.service.NormalUserLevelUpgradePolicy;
-import springbook.user.service.UserServiceImpl;
-import springbook.user.service.UserServiceTx;
+import springbook.user.service.*;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -101,9 +100,17 @@ public class UserServiceTest {
 
     @Test
     void upgradeAllOrNothing() throws Exception {
-        UserServiceImpl testUserServiceImpl = new UserServiceImpl(userDao, new TestUserUpgradePolicy(userDao, "4"));
-        UserServiceTx testUserService = new UserServiceTx(testUserServiceImpl, transactionManager);
         userDao.deleteAll();
+
+        UserServiceImpl testUserServiceImpl = new UserServiceImpl(userDao, new TestUserUpgradePolicy(userDao, "4"));
+        TransactionHandler transactionHandler = new TransactionHandler();
+        transactionHandler.setTarget(testUserServiceImpl);
+        transactionHandler.setTransactionManager(transactionManager);
+        transactionHandler.setPattern("upgradeLevels");
+
+        UserService testUserService = (UserService) Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class[] {UserService.class}, transactionHandler);
+
         for(User user : users) userDao.add(user);
 
         try{
