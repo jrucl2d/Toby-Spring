@@ -28,8 +28,7 @@ import static springbook.user.service.NormalUserLevelUpgradePolicy.MIN_RECCOMEND
 
 public class UserServiceTest {
     private static ApplicationContext ac;
-    private UserService userService;
-    private Object proxyFactoryBean;
+    private UserServiceImpl userService;
     private MailSender mailSender;
     private PlatformTransactionManager transactionManager;
     private UserDao userDao;
@@ -41,7 +40,7 @@ public class UserServiceTest {
     }
     @BeforeEach
     void beforeEach(){
-        this.proxyFactoryBean = ac.getBean("proxyFactoryBean");
+        this.userService = ac.getBean("userServiceImpl", UserServiceImpl.class);
         this.userDao = ac.getBean("userDao", UserDao.class);
         this.mailSender = ac.getBean("mailSender", MailSender.class);
         this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
@@ -62,9 +61,7 @@ public class UserServiceTest {
         NormalUserLevelUpgradePolicy userLevelUpgradePolicy = new NormalUserLevelUpgradePolicy(mockUserDao, mockMailSender);
         UserServiceImpl userServiceImpl = new UserServiceImpl(mockUserDao, userLevelUpgradePolicy);
 
-        userServiceImpl.setUserLevelUpgradePolicy(userLevelUpgradePolicy);
-//        userService.setUserService(userServiceImpl);
-        userService.upgradeLevels();
+        userServiceImpl.upgradeLevels();
 
         // any : 파라미터 내용을 무시하고 호출 횟수만 확인 가능
         verify(mockUserDao, times(2)).update(any(User.class));
@@ -122,6 +119,13 @@ public class UserServiceTest {
 
         }
         checkLevelUpgraded(users.get(1), false);
+    }
+
+    @Test
+    void readOnlyTransactionAttribute() {
+        NormalUserLevelUpgradePolicy userLevelUpgradePolicy = new NormalUserLevelUpgradePolicy(userDao, mailSender);
+        TestUserService testUserService = new TestUserService(userDao, userLevelUpgradePolicy);
+        testUserService.getAll();
     }
 
     private void checkLevel(User user, Level expected){
