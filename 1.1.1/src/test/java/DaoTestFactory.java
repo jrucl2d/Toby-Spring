@@ -37,9 +37,10 @@ public class DaoTestFactory {
     }
 
     @Bean
-    public NameMatchMethodPointcut transactionPointcut() {
-        NameMatchMethodPointcut pointcut = new NameMatchMethodPointcut();
+    public NamedMatchClassMethodPointcut transactionPointcut() {
+        NamedMatchClassMethodPointcut pointcut = new NamedMatchClassMethodPointcut();
         pointcut.setMappedName("upgrade*");
+        pointcut.setMappedClassName("*ServiceImpl");
         return pointcut;
     }
 
@@ -48,18 +49,6 @@ public class DaoTestFactory {
         return new DefaultPointcutAdvisor(transactionPointcut(), transactionAdvice());
     }
 
-    @Bean
-    public ProxyFactoryBean proxyFactoryBean() {
-        ProxyFactoryBean factoryBean = new ProxyFactoryBean();
-        factoryBean.setTarget(userServiceImpl());
-        factoryBean.addAdvisor(transactionAdvisor());
-        return factoryBean;
-    }
-
-//    @Bean
-//    public UserService userService() {
-//        return new UserServiceTx(userServiceImpl(), transactionManager());
-//    }
 
     @Bean
     public MailSender mailSender() {
