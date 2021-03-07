@@ -6,8 +6,10 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.mail.MailSender;
 import org.springframework.transaction.PlatformTransactionManager;
-import springbook.user.service.DummyMailSender;
+import springbook.user.mailSender.DummyMailSender;
 import springbook.user.service.UserService;
+import springbook.user.service.UserServiceImpl;
+import springbook.user.service.UserServiceTx;
 
 import javax.sql.DataSource;
 
@@ -20,11 +22,20 @@ public class DaoFactory {
         return new DataSourceTransactionManager(dataSource());
     }
 
+    // 실제 객체 -> 클라이언트가 바로 사용하지 않는다.
     @Bean
-    public UserService userService() {
-        UserService userService =  new UserService();
+    public UserServiceImpl userServiceImpl() {
+        UserServiceImpl userService =  new UserServiceImpl();
         userService.setUserDao(userDao());
         userService.setMailSender(mailSender());
+        return userService;
+    }
+
+    // 프록시 -> 클라이언트가 바로 사용함
+    @Bean
+    public UserServiceTx userService() {
+        UserServiceTx userService = new UserServiceTx();
+        userService.setUserService(userServiceImpl());
         userService.setTransactionManager(transactionManager());
         return userService;
     }

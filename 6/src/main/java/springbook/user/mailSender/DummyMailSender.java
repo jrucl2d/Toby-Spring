@@ -1,4 +1,4 @@
-package springbook.user.service;
+package springbook.user.mailSender;
 
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;

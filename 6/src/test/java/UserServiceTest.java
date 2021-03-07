@@ -13,6 +13,8 @@ import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
 import springbook.user.service.UserService;
+import springbook.user.service.UserServiceImpl;
+import springbook.user.service.UserServiceTx;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,16 +23,19 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
-import static springbook.user.service.UserService.MIN_LOGCOUNT_FOR_SILVER;
-import static springbook.user.service.UserService.MIN_RECCOMEND_FOR_GOLD;
+import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
+import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 
 public class UserServiceTest {
     private static ApplicationContext ac;
     private UserService userService;
-    private MailSender mailSender;
     private PlatformTransactionManager transactionManager;
     private UserDao userDao;
     private List<User> users;
+
+    // mail sender 테스트를 위해서 클라이언트가 바로 사용하지 않는 userServiceImpl이 필요하다.
+    private UserServiceImpl userServiceImpl;
+    private MailSender mailSender;
 
     @BeforeAll
     static void firstJob() {
@@ -38,7 +43,9 @@ public class UserServiceTest {
     }
     @BeforeEach
     void beforeEach(){
-        this.userService = ac.getBean("userService", UserService.class);
+        this.userService = ac.getBean("userService", UserServiceTx.class);
+        this.userServiceImpl = ac.getBean("userServiceImpl", UserServiceImpl.class);
+
         this.userDao = ac.getBean("userDao", UserDao.class);
         this.mailSender = ac.getBean("mailSender", MailSender.class);
         this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
@@ -57,7 +64,7 @@ public class UserServiceTest {
         for(User user : users) userDao.add(user);
 
         MockMailSender mockMailSender = new MockMailSender();
-        userService.setMailSender(mockMailSender);
+        userServiceImpl.setMailSender(mockMailSender);
         userService.upgradeLevels();
 
         checkLevel(users.get(0), Level.BASIC);
@@ -92,16 +99,20 @@ public class UserServiceTest {
 
     @Test
     void upgradeAllOrNothing() throws Exception {
-        UserService testUserService = new TestUserService(users.get(3).getId());
+        // 테스트용 UserServiceImpl
+        UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(userDao);
-        testUserService.setTransactionManager(transactionManager);
         testUserService.setMailSender(mailSender);
+
+        UserServiceTx txUserService = new UserServiceTx();
+        txUserService.setUserService(testUserService); // 수동 DI
+        txUserService.setTransactionManager(transactionManager);
 
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
 
         try{
-            testUserService.upgradeLevels();
+            txUserService.upgradeLevels();
             fail("TestUserServiceException Expected");
         } catch (TestUserServiceException e) {
 
@@ -124,7 +135,7 @@ public class UserServiceTest {
 
 
     // UserService를 테스트하기 위한 스태틱 inner class
-    static class TestUserService extends UserService {
+    static class TestUserService extends UserServiceImpl {
         private String id;
 
         private TestUserService(String id){
