@@ -17,6 +17,7 @@ public class UserService {
     public static final int MIN_RECCOMEND_FOR_GOLD = 30;
     private UserDao userDao; // DI
     private MailSender mailSender;
+    private PlatformTransactionManager transactionManager;
 
     public void setUserDao(UserDao userDao) {
         this.userDao = userDao;
@@ -29,8 +30,6 @@ public class UserService {
     public void setTransactionManager(PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
-
-    private PlatformTransactionManager transactionManager;
 
     public void add(User user) {
         if(user.getLevel() == null) user.setLevel(Level.BASIC);
