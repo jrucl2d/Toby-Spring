@@ -6,6 +6,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.mail.MailSender;
 import org.springframework.transaction.PlatformTransactionManager;
+import springbook.user.aop.TxProxyFactoryBean;
 import springbook.user.mailSender.DummyMailSender;
 import springbook.user.service.UserService;
 import springbook.user.service.UserServiceImpl;
@@ -33,11 +34,19 @@ public class DaoFactory {
 
     // 프록시 -> 클라이언트가 바로 사용함
     @Bean
-    public UserServiceTx userService() {
-        UserServiceTx userService = new UserServiceTx();
-        userService.setUserService(userServiceImpl());
-        userService.setTransactionManager(transactionManager());
+    public UserService userService() throws Exception {
+        UserService userService = (UserService) txProxyFactoryBean().getObject();
         return userService;
+    }
+
+    @Bean
+    public TxProxyFactoryBean txProxyFactoryBean() {
+        TxProxyFactoryBean txProxyFactoryBean = new TxProxyFactoryBean();
+        txProxyFactoryBean.setTarget(userServiceImpl());
+        txProxyFactoryBean.setServiceInterface(springbook.user.service.UserService.class);
+        txProxyFactoryBean.setTransactionManager(transactionManager());
+        txProxyFactoryBean.setPattern("upgradeLevels");
+        return txProxyFactoryBean;
     }
 
     @Bean

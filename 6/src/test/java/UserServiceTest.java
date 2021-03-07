@@ -9,6 +9,8 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
+import springbook.user.aop.TransactionHandler;
+import springbook.user.aop.TxProxyFactoryBean;
 import springbook.user.dao.DaoFactory;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
@@ -17,6 +19,7 @@ import springbook.user.service.UserService;
 import springbook.user.service.UserServiceImpl;
 import springbook.user.service.UserServiceTx;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +38,6 @@ public class UserServiceTest {
     private List<User> users;
 
     // mail sender 테스트를 위해서 클라이언트가 바로 사용하지 않는 userServiceImpl이 필요하다.
-    private UserServiceImpl userServiceImpl;
     private MailSender mailSender;
 
     @BeforeAll
@@ -43,10 +45,8 @@ public class UserServiceTest {
         ac = new AnnotationConfigApplicationContext(DaoFactory.class);
     }
     @BeforeEach
-    void beforeEach(){
-        this.userService = ac.getBean("userService", UserServiceTx.class);
-        this.userServiceImpl = ac.getBean("userServiceImpl", UserServiceImpl.class);
-
+    void beforeEach() throws Exception {
+        this.userService = ac.getBean("userService", UserService.class);
         this.userDao = ac.getBean("userDao", UserDao.class);
         this.mailSender = ac.getBean("mailSender", MailSender.class);
         this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
@@ -58,22 +58,41 @@ public class UserServiceTest {
                 new User("4", "YU4", "1234567", "d@d.com", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD),
                 new User("5", "YU5", "12345678", "e@e.com", Level.GOLD, 100, Integer.MAX_VALUE));
     }
+
+    @Test
+    @DisplayName("유저 추가시 기본 BASIC인지, 레벨 지정 가능한지")
+    void add() {
+        userDao.deleteAll();
+
+        User userWithLevel = users.get(4); // Gold 레벨 -> 레벨이 지정된 유저
+        User userWithoutLevel = users.get(0);
+        userWithoutLevel.setLevel(null); // 레벨 없음 -> 기본 BASIC 처리되어야 함
+
+        userService.add(userWithLevel);
+        userService.add(userWithoutLevel);
+
+        User userWithLevelRead = userDao.get(userWithLevel.getId());
+        User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
+        assertThat(userWithLevelRead.getLevel()).isEqualTo(userWithLevel.getLevel());
+        assertThat(userWithoutLevelRead.getLevel()).isEqualTo(Level.BASIC);
+    }
+
     @Test
     @DisplayName("레벨 업그레이드가 잘 되는지")
     void upgradeLevels() {
         // 고립된 테스트에서는 테스트 대상 오브젝트를 직접 생성
-        UserServiceImpl userServiceImplforTest = new UserServiceImpl();
+        UserServiceImpl userServiceImpl = new UserServiceImpl();
 
         // UserDao Mock 오브젝트 DI
         MockUserDao mockUserDao = new MockUserDao(this.users);
-        userServiceImplforTest.setUserDao(mockUserDao);
+        userServiceImpl.setUserDao(mockUserDao);
 
         // 메일 발송 여부 확인을 위한 Mock 오브젝트 DI
         MockMailSender mockMailSender = new MockMailSender();
-        userServiceImplforTest.setMailSender(mockMailSender);
+        userServiceImpl.setMailSender(mockMailSender);
 
         // 테스트 대상 실행
-        userServiceImplforTest.upgradeLevels();
+        userServiceImpl.upgradeLevels();
 
         // DB에 저장된 결과 확인
         List<User> updated = mockUserDao.getUpdated();
@@ -91,22 +110,23 @@ public class UserServiceTest {
         assertThat(updated.getId()).isEqualTo(expectedId);
         assertThat(updated.getLevel()).isEqualTo(expectedLevel);
     }
+
     @Test
     @DisplayName("Mockito를 사용한 레벨 업그레이드 확인")
     void mockUpgradeLevels() {
-        UserServiceImpl userServiceImpl2 = new UserServiceImpl();
+        UserServiceImpl userServiceImpl = new UserServiceImpl();
 
         // 다이나믹한 목 오브젝트 생성과 메소드의 리턴 값 설정. 그리고 DI까지 설정
         UserDao mockUserDao = mock(UserDao.class);
         when(mockUserDao.getAll()).thenReturn(this.users);
-        userServiceImpl2.setUserDao(mockUserDao);
+        userServiceImpl.setUserDao(mockUserDao);
         
         // 리턴값 없는 메소드를 가진 목 오브젝트는 더 쉬움
         MailSender mockMailSender = mock(MailSender.class);
-        userServiceImpl2.setMailSender(mockMailSender);
+        userServiceImpl.setMailSender(mockMailSender);
         
         // userServiceImpl2가 실행되는 동안 목 오브젝트가 호출되면 자동으로 기록이 남음
-        userServiceImpl2.upgradeLevels();
+        userServiceImpl.upgradeLevels();
         
         // times : 메소드 호출 횟수
         // any() : 파라미터는 무시하고 호출 횟수만 확인 가능
@@ -125,34 +145,21 @@ public class UserServiceTest {
         assertThat(mailMessages.get(0).getTo()[0]).isEqualTo(users.get(1).getEmail());
         assertThat(mailMessages.get(1).getTo()[0]).isEqualTo(users.get(3).getEmail());
     }
-    @Test
-    @DisplayName("유저 추가시 기본 BASIC인지, 레벨 지정 가능한지")
-    void add() {
-        userDao.deleteAll();
 
-        User userWithLevel = users.get(4); // Gold 레벨 -> 레벨이 지정된 유저
-        User userWithoutLevel = users.get(0);
-        userWithoutLevel.setLevel(null); // 레벨 없음 -> 기본 BASIC 처리되어야 함
 
-        userService.add(userWithLevel);
-        userService.add(userWithoutLevel);
-
-        User userWithLevelRead = userDao.get(userWithLevel.getId());
-        User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
-        assertThat(userWithLevelRead.getLevel()).isEqualTo(userWithLevel.getLevel());
-        assertThat(userWithoutLevelRead.getLevel()).isEqualTo(Level.BASIC);
-    }
     @Test
     @DisplayName("레벨 업그레이드 중 에러 발생시 롤백되는지 확인")
-    void upgradeAllOrNothing() {
+    void upgradeAllOrNothing() throws Exception {
         // 테스트용 UserServiceImpl
         UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(userDao);
         testUserService.setMailSender(mailSender);
 
-        UserServiceTx txUserService = new UserServiceTx();
-        txUserService.setUserService(testUserService); // 수동 DI
-        txUserService.setTransactionManager(transactionManager);
+        // 다이나믹 프록시(트랜잭션 프록시 핸들러)를 사용해 프록시로 트랜잭션 기능이 작동하는지 파악
+        TxProxyFactoryBean txProxyFactoryBean
+                = ac.getBean("&txProxyFactoryBean", TxProxyFactoryBean.class); // 팩토리 빈 자체를 가져옴
+        txProxyFactoryBean.setTarget(testUserService);
+        UserService txUserService = (UserService) txProxyFactoryBean.getObject();
 
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
