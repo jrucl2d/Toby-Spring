@@ -2,6 +2,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.mail.MailException;
@@ -21,8 +22,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.*;
 import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 
@@ -90,7 +91,40 @@ public class UserServiceTest {
         assertThat(updated.getId()).isEqualTo(expectedId);
         assertThat(updated.getLevel()).isEqualTo(expectedLevel);
     }
+    @Test
+    @DisplayName("Mockito를 사용한 레벨 업그레이드 확인")
+    void mockUpgradeLevels() {
+        UserServiceImpl userServiceImpl2 = new UserServiceImpl();
 
+        // 다이나믹한 목 오브젝트 생성과 메소드의 리턴 값 설정. 그리고 DI까지 설정
+        UserDao mockUserDao = mock(UserDao.class);
+        when(mockUserDao.getAll()).thenReturn(this.users);
+        userServiceImpl2.setUserDao(mockUserDao);
+        
+        // 리턴값 없는 메소드를 가진 목 오브젝트는 더 쉬움
+        MailSender mockMailSender = mock(MailSender.class);
+        userServiceImpl2.setMailSender(mockMailSender);
+        
+        // userServiceImpl2가 실행되는 동안 목 오브젝트가 호출되면 자동으로 기록이 남음
+        userServiceImpl2.upgradeLevels();
+        
+        // times : 메소드 호출 횟수
+        // any() : 파라미터는 무시하고 호출 횟수만 확인 가능
+        verify(mockUserDao, times(2)).update(any(User.class));
+        // users.get(1)을 파라미터로 update()가 호출된 적 있는지 검증
+        verify(mockUserDao).update(users.get(1));
+        assertThat(users.get(1).getLevel()).isEqualTo(Level.SILVER);
+        verify(mockUserDao).update(users.get(3));
+        assertThat(users.get(3).getLevel()).isEqualTo(Level.GOLD);
+
+        ArgumentCaptor<SimpleMailMessage> mailMessageArg
+                = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        // 파라미터를 정밀하게 검사하기 위해 캡쳐 -> 파라미터보다는 파라미터 내부 정보 확인할 때 유용
+        verify(mockMailSender, times(2)).send(mailMessageArg.capture());
+        List<SimpleMailMessage> mailMessages = mailMessageArg.getAllValues();
+        assertThat(mailMessages.get(0).getTo()[0]).isEqualTo(users.get(1).getEmail());
+        assertThat(mailMessages.get(1).getTo()[0]).isEqualTo(users.get(3).getEmail());
+    }
     @Test
     @DisplayName("유저 추가시 기본 BASIC인지, 레벨 지정 가능한지")
     void add() {
@@ -108,9 +142,9 @@ public class UserServiceTest {
         assertThat(userWithLevelRead.getLevel()).isEqualTo(userWithLevel.getLevel());
         assertThat(userWithoutLevelRead.getLevel()).isEqualTo(Level.BASIC);
     }
-
     @Test
-    void upgradeAllOrNothing() throws Exception {
+    @DisplayName("레벨 업그레이드 중 에러 발생시 롤백되는지 확인")
+    void upgradeAllOrNothing() {
         // 테스트용 UserServiceImpl
         UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(userDao);
@@ -129,6 +163,7 @@ public class UserServiceTest {
         } catch (TestUserServiceException e) {
 
         }
+        // 1번은 업데이트되고 3번에서 에러났을 때 1번이 롤백되었는지 확인
         checkLevelUpgraded(users.get(1), false);
     }
     private void checkLevelUpgraded(User user, boolean upgraded) {
@@ -139,6 +174,7 @@ public class UserServiceTest {
             assertThat(userupdate.getLevel()).isEqualTo(user.getLevel());
         }
     }
+
 
     // Mock UserDao의 스태틱 inner class
     static class MockUserDao implements UserDao {

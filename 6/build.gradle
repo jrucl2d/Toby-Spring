@@ -21,6 +21,7 @@ dependencies {
     implementation group: 'org.springframework', name: 'spring-jdbc', version: '5.3.3'
     testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.19.0'
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-mail', version: '2.3.9.RELEASE'
+    testImplementation group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
 }
 
 test {
