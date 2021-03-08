@@ -6,6 +6,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
@@ -23,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
@@ -169,6 +171,12 @@ public class UserServiceTest {
         } else {
             assertThat(userupdate.getLevel()).isEqualTo(user.getLevel());
         }
+    }
+
+    @Test
+    @DisplayName("readOnly가 걸려있는 get 메소드에서 update 수행시 오류 발생")
+    void readOnlyTransactionAttribute() {
+        assertThrows(TransientDataAccessResourceException.class, () -> testUserService.getAll());
     }
 
 

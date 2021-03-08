@@ -30,7 +30,23 @@ public class UserServiceImpl implements UserService{
         if(user.getLevel() == null) user.setLevel(Level.BASIC);
         userDao.add(user);
     }
-    
+
+    public User get(String id) {
+        return userDao.get(id);
+    }
+
+    public List<User> getAll() {
+        return userDao.getAll();
+    }
+
+    public void deleteAll() {
+        userDao.deleteAll();
+    }
+
+    public void update(User user) {
+        userDao.update(user);
+    }
+
     // 레벨 업그레이드에 대한 비즈니스 로직만 남음
     public void upgradeLevels() {
         List<User> users = userDao.getAll();

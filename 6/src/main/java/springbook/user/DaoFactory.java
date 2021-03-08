@@ -9,6 +9,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.mail.MailSender;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 import springbook.user.aop.TransactionAdvice;
 import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
@@ -16,6 +17,7 @@ import springbook.user.service.TestUserService;
 import springbook.user.service.UserServiceImpl;
 
 import javax.sql.DataSource;
+import java.util.Properties;
 
 // 객체의 생성 방법을 결정, 그렇게 만들어진 오브젝트를 리턴하는 역할을 하는 '팩토리'
 @Configuration // 어플리케이션 컨텍스트(빈 팩토리)가 사용할 설정정보라는 뜻
@@ -24,10 +26,15 @@ public class DaoFactory {
     // aop 관련 빈
     // 어드바이스
     @Bean
-    public TransactionAdvice transactionAdvice() {
-        TransactionAdvice transactionAdvice = new TransactionAdvice();
-        transactionAdvice.setTransactionManager(transactionManager());
-        return transactionAdvice;
+    public TransactionInterceptor transactionAdvice() {
+        TransactionInterceptor interceptor = new TransactionInterceptor();
+        interceptor.setTransactionManager(transactionManager());
+        Properties properties = new Properties();
+        properties.put("get*", "PROPAGATION_REQUIRED");
+        properties.put("get*", "readOnly");
+        properties.put("*", "PROPAGATION_REQUIRED");
+        interceptor.setTransactionAttributes(properties);
+        return interceptor;
     }
     // 포인트컷
     @Bean
@@ -35,7 +42,7 @@ public class DaoFactory {
         AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
         // 포인트컷 표현식의 이름에 적용되는 패턴은 클래스 이름 패턴이 아니라 타입 패턴
         // -> 여기선 TestUserService가 UserServiceImpl을 상속했다.
-        pointcut.setExpression("execution(* *..*ServiceImpl.upgrade*(..))");
+        pointcut.setExpression("bean(*Service)");
         return pointcut;
     }
     // 어드바이저
