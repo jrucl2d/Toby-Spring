@@ -1,5 +1,6 @@
 package springbook.user;
 
+import org.springframework.aop.aspectj.AspectJExpressionPointcut;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.context.annotation.Bean;
@@ -8,11 +9,10 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.mail.MailSender;
 import org.springframework.transaction.PlatformTransactionManager;
-import springbook.user.aop.NameMatchClassMethodPointcut;
 import springbook.user.aop.TransactionAdvice;
 import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
-import springbook.user.service.TestUserServiceImpl;
+import springbook.user.service.TestUserService;
 import springbook.user.service.UserServiceImpl;
 
 import javax.sql.DataSource;
@@ -21,20 +21,7 @@ import javax.sql.DataSource;
 @Configuration // 어플리케이션 컨텍스트(빈 팩토리)가 사용할 설정정보라는 뜻
 public class DaoFactory {
 
-    @Bean
-    public PlatformTransactionManager transactionManager() {
-        return new DataSourceTransactionManager(dataSource());
-    }
-
-    // 실제 객체 -> 클라이언트가 바로 사용하지 않는다.
-    @Bean
-    public UserServiceImpl userService() {
-        UserServiceImpl userService =  new UserServiceImpl();
-        userService.setUserDao(userDao());
-        userService.setMailSender(mailSender());
-        return userService;
-    }
-
+    // aop 관련 빈
     // 어드바이스
     @Bean
     public TransactionAdvice transactionAdvice() {
@@ -44,10 +31,11 @@ public class DaoFactory {
     }
     // 포인트컷
     @Bean
-    public NameMatchClassMethodPointcut transactionPointcut() {
-        NameMatchClassMethodPointcut pointcut = new NameMatchClassMethodPointcut();
-        pointcut.setMappedClassName("*ServiceImpl");
-        pointcut.setMappedName("upgrade*");
+    public AspectJExpressionPointcut transactionPointcut() {
+        AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
+        // 포인트컷 표현식의 이름에 적용되는 패턴은 클래스 이름 패턴이 아니라 타입 패턴
+        // -> 여기선 TestUserService가 UserServiceImpl을 상속했다.
+        pointcut.setExpression("execution(* *..*ServiceImpl.upgrade*(..))");
         return pointcut;
     }
     // 어드바이저
@@ -58,7 +46,23 @@ public class DaoFactory {
         advisor.setPointcut(transactionPointcut());
         return advisor;
     }
-    // 빈 후처리기
+    // aop 관련 빈 끝
+    
+    @Bean
+    public PlatformTransactionManager transactionManager() {
+        return new DataSourceTransactionManager(dataSource());
+    }
+
+    // 프록시 자동 생성기에 의해서 포인트컷에 해당하는 이 객체가 실체가 아닌 프록시로 생성됨
+    @Bean
+    public UserServiceImpl userService() {
+        UserServiceImpl userService =  new UserServiceImpl();
+        userService.setUserDao(userDao());
+        userService.setMailSender(mailSender());
+        return userService;
+    }
+    
+    // 다이나믹 프록시에서 프록시 자동 생성기 사용으로 변경
     @Bean
     public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator(){
         return new DefaultAdvisorAutoProxyCreator();
@@ -66,8 +70,8 @@ public class DaoFactory {
 
     // 트랜잭션 롤백 확인용 TestUserService
     @Bean
-    public TestUserServiceImpl testUserService() {
-        TestUserServiceImpl testUserService = new TestUserServiceImpl();
+    public TestUserService testUserService() {
+        TestUserService testUserService = new TestUserService();
         testUserService.setUserDao(userDao());
         testUserService.setMailSender(mailSender());
         return testUserService;
