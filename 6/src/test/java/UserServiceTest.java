@@ -11,6 +11,9 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import springbook.user.DaoFactory;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.*;
 import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 
+@Transactional
 public class UserServiceTest {
     private static ApplicationContext ac;
     private UserService userService;
@@ -148,7 +152,6 @@ public class UserServiceTest {
         assertThat(mailMessages.get(1).getTo()[0]).isEqualTo(users.get(3).getEmail());
     }
 
-
     @Test
     @DisplayName("레벨 업그레이드 중 에러 발생시 롤백되는지 확인")
     void upgradeAllOrNothing() throws Exception {
@@ -179,6 +182,42 @@ public class UserServiceTest {
         assertThrows(TransientDataAccessResourceException.class, () -> testUserService.getAll());
     }
 
+    @Test
+    @DisplayName("서로 다른 트랜잭션을 임의로 하나의 트랜잭션으로 동기화")
+    void transactionSync() {
+        DefaultTransactionDefinition definition = new DefaultTransactionDefinition(); // 트랜잭션 정의 기본 값 사용
+        definition.setReadOnly(true); // 읽기 전용 트랜잭션으로 설정
+        TransactionStatus status = transactionManager.getTransaction(definition); // 트랜잭션 시작
+
+        assertThrows(TransientDataAccessResourceException.class, () -> userDao.deleteAll()); // 읽기 전용 트랜잭션을 위반해 오류가 발생할 것
+        assertThrows(TransientDataAccessResourceException.class, () -> userDao.add(users.get(0)));
+        assertThrows(TransientDataAccessResourceException.class, () -> userDao.add(users.get(1)));
+
+        transactionManager.commit(status); // 트랜잭션 종료
+    }
+    @Test
+    @DisplayName("서로 다른 트랜잭션을 임의로 하나의 트랜잭션으로 동기화")
+    void transactionSync2() {
+        userDao.deleteAll(); // 트랜잭션 롤백 후 돌아갈 초기 상태를 만들기 위해 트랜잭션 시작 전에 초기화
+        assertThat(userDao.getCount()).isEqualTo(0);
+
+        DefaultTransactionDefinition definition = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(definition);
+
+        userService.add(users.get(0));
+        userService.add(users.get(1));
+        assertThat(userDao.getCount()).isEqualTo(2); // userDao의 메소드 또한 같은 트랜잭션에서 동작한다.
+
+        transactionManager.rollback(status);
+        assertThat(userDao.getCount()).isEqualTo(0); // 롤백됨을 확인
+    }
+    @Test
+    @DisplayName("서로 다른 트랜잭션을 임의로 하나의 트랜잭션으로 동기화")
+    void transactionSync3() {
+        userService.add(users.get(0));
+        userService.add(users.get(1));
+        assertThat(userDao.getCount()).isEqualTo(2); // userDao의 메소드 또한 같은 트랜잭션에서 동작한다.
+    }
 
     // Mock UserDao의 스태틱 inner class
     static class MockUserDao implements UserDao {
