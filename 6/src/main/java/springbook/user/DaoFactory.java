@@ -1,21 +1,19 @@
 package springbook.user;
 
-import org.springframework.aop.framework.ProxyFactoryBean;
+import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
-import org.springframework.aop.support.NameMatchMethodPointcut;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.mail.MailSender;
 import org.springframework.transaction.PlatformTransactionManager;
+import springbook.user.aop.NameMatchClassMethodPointcut;
 import springbook.user.aop.TransactionAdvice;
-import springbook.user.aop.TxProxyFactoryBean;
 import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
-import springbook.user.service.UserService;
+import springbook.user.service.TestUserServiceImpl;
 import springbook.user.service.UserServiceImpl;
-import springbook.user.service.UserServiceTx;
 
 import javax.sql.DataSource;
 
@@ -30,7 +28,7 @@ public class DaoFactory {
 
     // 실제 객체 -> 클라이언트가 바로 사용하지 않는다.
     @Bean
-    public UserServiceImpl userServiceImpl() {
+    public UserServiceImpl userService() {
         UserServiceImpl userService =  new UserServiceImpl();
         userService.setUserDao(userDao());
         userService.setMailSender(mailSender());
@@ -46,8 +44,9 @@ public class DaoFactory {
     }
     // 포인트컷
     @Bean
-    public NameMatchMethodPointcut transactionPointcut() {
-        NameMatchMethodPointcut pointcut = new NameMatchMethodPointcut();
+    public NameMatchClassMethodPointcut transactionPointcut() {
+        NameMatchClassMethodPointcut pointcut = new NameMatchClassMethodPointcut();
+        pointcut.setMappedClassName("*ServiceImpl");
         pointcut.setMappedName("upgrade*");
         return pointcut;
     }
@@ -59,23 +58,19 @@ public class DaoFactory {
         advisor.setPointcut(transactionPointcut());
         return advisor;
     }
-    // 프록시 팩토리 빈
+    // 빈 후처리기
     @Bean
-    public ProxyFactoryBean userService() {
-        ProxyFactoryBean factoryBean = new ProxyFactoryBean();
-        factoryBean.setTarget(userServiceImpl());
-        factoryBean.setInterceptorNames("transactionAdvisor");
-        return factoryBean;
+    public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator(){
+        return new DefaultAdvisorAutoProxyCreator();
     }
 
+    // 트랜잭션 롤백 확인용 TestUserService
     @Bean
-    public TxProxyFactoryBean txProxyFactoryBean() {
-        TxProxyFactoryBean txProxyFactoryBean = new TxProxyFactoryBean();
-        txProxyFactoryBean.setTarget(userServiceImpl());
-        txProxyFactoryBean.setServiceInterface(springbook.user.service.UserService.class);
-        txProxyFactoryBean.setTransactionManager(transactionManager());
-        txProxyFactoryBean.setPattern("upgradeLevels");
-        return txProxyFactoryBean;
+    public TestUserServiceImpl testUserService() {
+        TestUserServiceImpl testUserService = new TestUserServiceImpl();
+        testUserService.setUserDao(userDao());
+        testUserService.setMailSender(mailSender());
+        return testUserService;
     }
 
     @Bean

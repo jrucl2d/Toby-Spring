@@ -10,11 +10,11 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
-import springbook.user.aop.TxProxyFactoryBean;
 import springbook.user.DaoFactory;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
+import springbook.user.exception.TestUserServiceException;
 import springbook.user.service.UserService;
 import springbook.user.service.UserServiceImpl;
 
@@ -31,6 +31,7 @@ import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 public class UserServiceTest {
     private static ApplicationContext ac;
     private UserService userService;
+    private UserService testUserService;
     private PlatformTransactionManager transactionManager;
     private UserDao userDao;
     private List<User> users;
@@ -45,6 +46,7 @@ public class UserServiceTest {
     @BeforeEach
     void beforeEach() throws Exception {
         this.userService = ac.getBean("userService", UserService.class);
+        this.testUserService = ac.getBean("testUserService", UserService.class);
         this.userDao = ac.getBean("userDao", UserDao.class);
         this.mailSender = ac.getBean("mailSender", MailSender.class);
         this.transactionManager = ac.getBean("transactionManager", PlatformTransactionManager.class);
@@ -148,22 +150,11 @@ public class UserServiceTest {
     @Test
     @DisplayName("레벨 업그레이드 중 에러 발생시 롤백되는지 확인")
     void upgradeAllOrNothing() throws Exception {
-        // 테스트용 UserServiceImpl
-        UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
-        testUserService.setUserDao(userDao);
-        testUserService.setMailSender(mailSender);
-
-        // 다이나믹 프록시(트랜잭션 프록시 핸들러)를 사용해 프록시로 트랜잭션 기능이 작동하는지 파악
-        ProxyFactoryBean txProxyFactoryBean
-                = ac.getBean("&userService", ProxyFactoryBean.class); // 팩토리 빈 자체를 가져옴
-        txProxyFactoryBean.setTarget(testUserService);
-        UserService txUserService = (UserService) txProxyFactoryBean.getObject();
-
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
 
         try{
-            txUserService.upgradeLevels();
+            testUserService.upgradeLevels();
             fail("TestUserServiceException Expected");
         } catch (TestUserServiceException e) {
 
@@ -207,21 +198,6 @@ public class UserServiceTest {
         public void deleteAll() { throw new UnsupportedOperationException(); }
         public int getCount() { throw new UnsupportedOperationException(); }
     }
-
-    // UserService를 테스트하기 위한 스태틱 inner class
-    static class TestUserService extends UserServiceImpl {
-        private String id;
-
-        private TestUserService(String id){
-            this.id = id; // 예외를 발생시킬 User 오브젝트의 id를 지정
-        }
-        @Override
-        protected void upgradeLevel(User user) {
-            if(user.getId().equals(this.id)) throw new TestUserServiceException();
-            super.upgradeLevel(user);
-        }
-    }
-    static class TestUserServiceException extends RuntimeException {}
 
     // MailSender를 테스트하기 위한 스태틱 inner class
     static class MockMailSender implements MailSender {
