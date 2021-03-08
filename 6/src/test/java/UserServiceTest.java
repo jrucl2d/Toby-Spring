@@ -3,23 +3,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
-import springbook.user.aop.TransactionHandler;
 import springbook.user.aop.TxProxyFactoryBean;
-import springbook.user.dao.DaoFactory;
+import springbook.user.DaoFactory;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
 import springbook.user.service.UserService;
 import springbook.user.service.UserServiceImpl;
-import springbook.user.service.UserServiceTx;
 
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -156,8 +154,8 @@ public class UserServiceTest {
         testUserService.setMailSender(mailSender);
 
         // 다이나믹 프록시(트랜잭션 프록시 핸들러)를 사용해 프록시로 트랜잭션 기능이 작동하는지 파악
-        TxProxyFactoryBean txProxyFactoryBean
-                = ac.getBean("&txProxyFactoryBean", TxProxyFactoryBean.class); // 팩토리 빈 자체를 가져옴
+        ProxyFactoryBean txProxyFactoryBean
+                = ac.getBean("&userService", ProxyFactoryBean.class); // 팩토리 빈 자체를 가져옴
         txProxyFactoryBean.setTarget(testUserService);
         UserService txUserService = (UserService) txProxyFactoryBean.getObject();
 

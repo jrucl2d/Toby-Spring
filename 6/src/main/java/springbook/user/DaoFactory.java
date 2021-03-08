@@ -1,12 +1,17 @@
-package springbook.user.dao;
+package springbook.user;
 
+import org.springframework.aop.framework.ProxyFactoryBean;
+import org.springframework.aop.support.DefaultPointcutAdvisor;
+import org.springframework.aop.support.NameMatchMethodPointcut;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.mail.MailSender;
 import org.springframework.transaction.PlatformTransactionManager;
+import springbook.user.aop.TransactionAdvice;
 import springbook.user.aop.TxProxyFactoryBean;
+import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
 import springbook.user.service.UserService;
 import springbook.user.service.UserServiceImpl;
@@ -32,11 +37,35 @@ public class DaoFactory {
         return userService;
     }
 
-    // 프록시 -> 클라이언트가 바로 사용함
+    // 어드바이스
     @Bean
-    public UserService userService() throws Exception {
-        UserService userService = (UserService) txProxyFactoryBean().getObject();
-        return userService;
+    public TransactionAdvice transactionAdvice() {
+        TransactionAdvice transactionAdvice = new TransactionAdvice();
+        transactionAdvice.setTransactionManager(transactionManager());
+        return transactionAdvice;
+    }
+    // 포인트컷
+    @Bean
+    public NameMatchMethodPointcut transactionPointcut() {
+        NameMatchMethodPointcut pointcut = new NameMatchMethodPointcut();
+        pointcut.setMappedName("upgrade*");
+        return pointcut;
+    }
+    // 어드바이저
+    @Bean
+    public DefaultPointcutAdvisor transactionAdvisor() {
+        DefaultPointcutAdvisor advisor = new DefaultPointcutAdvisor();
+        advisor.setAdvice(transactionAdvice());
+        advisor.setPointcut(transactionPointcut());
+        return advisor;
+    }
+    // 프록시 팩토리 빈
+    @Bean
+    public ProxyFactoryBean userService() {
+        ProxyFactoryBean factoryBean = new ProxyFactoryBean();
+        factoryBean.setTarget(userServiceImpl());
+        factoryBean.setInterceptorNames("transactionAdvisor");
+        return factoryBean;
     }
 
     @Bean
