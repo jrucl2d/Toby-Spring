@@ -16,18 +16,46 @@ import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
 import springbook.user.service.TestUserService;
 import springbook.user.service.UserServiceImpl;
-import springbook.user.service.sqlService.SimpleSqlService;
-import springbook.user.service.sqlService.SqlService;
 
 import javax.sql.DataSource;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 @Configuration
-@EnableTransactionManagement // @Transactional을 사용 가능하게 해줌. <tx:annotation-driven />과 같음
+@EnableTransactionManagement(proxyTargetClass = true) // @Transactional을 사용 가능하게 해줌. <tx:annotation-driven />과 같음
 public class DaoFactory {
 
+    // aop 관련 빈
+    // 어드바이스
+//    @Bean
+//    public TransactionInterceptor transactionAdvice() {
+//        TransactionInterceptor interceptor = new TransactionInterceptor();
+//        interceptor.setTransactionManager(transactionManager());
+//        Properties properties = new Properties();
+//        properties.put("get*", "PROPAGATION_REQUIRED");
+//        properties.put("get*", "readOnly");
+//        properties.put("*", "PROPAGATION_REQUIRED");
+//        interceptor.setTransactionAttributes(properties);
+//        return interceptor;
+//    }
+//    // 포인트컷
+//    @Bean
+//    public AspectJExpressionPointcut transactionPointcut() {
+//        AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
+//        // 포인트컷 표현식의 이름에 적용되는 패턴은 클래스 이름 패턴이 아니라 타입 패턴
+//        // -> 여기선 TestUserService가 UserServiceImpl을 상속했다.
+//        pointcut.setExpression("bean(*Service)");
+//        return pointcut;
+//    }
+//    // 어드바이저
+//    @Bean
+//    public DefaultPointcutAdvisor transactionAdvisor() {
+//        DefaultPointcutAdvisor advisor = new DefaultPointcutAdvisor();
+//        advisor.setAdvice(transactionAdvice());
+//        advisor.setPointcut(transactionPointcut());
+//        return advisor;
+//    }
+    // aop 관련 빈 끝
+    
     @Bean
     public PlatformTransactionManager transactionManager() {
         return new DataSourceTransactionManager(dataSource());
@@ -66,22 +94,7 @@ public class DaoFactory {
     @Bean
     public UserDaoJdbc userDao() {
         UserDaoJdbc userDaoJdbc = new UserDaoJdbc(dataSource());
-        userDaoJdbc.setSqlService(sqlService());
         return userDaoJdbc;
-    }
-
-    @Bean
-    public SimpleSqlService sqlService() {
-        SimpleSqlService sqlService = new SimpleSqlService();
-        Map<String, String> sqlMap = new HashMap<>();
-        sqlMap.put("userAdd", "insert into users(id, name, password, email, level, login, recommend) values(?, ?, ?, ?, ?, ?, ?)");
-        sqlMap.put("userGet", "select * from users where id = ?");
-        sqlMap.put("userGetAll", "select * from users order by id");
-        sqlMap.put("userDeleteAll", "delete from users");
-        sqlMap.put("userGetCount", "select count(*) from users");
-        sqlMap.put("userUpdate", "update users set name = ?, password = ?, email = ?, level = ?, login = ?, recommend = ? where id = ?");
-        sqlService.setSqlMap(sqlMap);
-        return sqlService;
     }
 
     @Bean

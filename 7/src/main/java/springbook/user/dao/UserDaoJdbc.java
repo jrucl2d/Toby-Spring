@@ -4,22 +4,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import springbook.user.domain.Level;
 import springbook.user.domain.User;
-import springbook.user.service.sqlService.SqlService;
 
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.List;
-import java.util.Map;
 
 public class UserDaoJdbc implements UserDao {
     private JdbcTemplate jdbcTemplate;
-
-    private SqlService sqlService;
-
-    public void setSqlService(SqlService sqlService) {
-        this.sqlService = sqlService;
-    }
-
     private RowMapper<User> userRowMapper = new RowMapper<User>() {
         @Override
         public User mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -44,30 +35,31 @@ public class UserDaoJdbc implements UserDao {
 
     // 로컬 클래스의 코드에서 외부 메소드 로컬 변수에 접근할 때는 final로 해줘야 한다.
     public void add(final User user) {
-            this.jdbcTemplate.update(this.sqlService.getSql("userAdd"),
+            this.jdbcTemplate.update("insert into users(id, name, password, email, level, login, recommend) values(?, ?, ?, ?, ?, ?, ?)",
                     user.getId(), user.getName(), user.getPassword(), user.getEmail(), user.getLevel().getValue(), user.getLogin(), user.getRecommend());
 
     }
 
     public void deleteAll() {
-        this.jdbcTemplate.update(this.sqlService.getSql("userDeleteAll"));
+        this.jdbcTemplate.update("delete from users");
     }
 
     public User get(String id) {
-        return this.jdbcTemplate.queryForObject(this.sqlService.getSql("userGet"), this.userRowMapper, id);
+        return this.jdbcTemplate.queryForObject("select * from users where id = ?", this.userRowMapper, id);
     }
 
     public List<User> getAll() {
-        return this.jdbcTemplate.query(this.sqlService.getSql("userGetAll"), this.userRowMapper);
+        return this.jdbcTemplate.query("select * from users order by id", this.userRowMapper);
     }
 
     public int getCount() {
-        return this.jdbcTemplate.queryForObject(this.sqlService.getSql("userGetCount"), Integer.class);
+        return this.jdbcTemplate.queryForObject("select count(*) from users", Integer.class);
     }
 
     public void update(User user) {
         System.out.println("user = " + user);
-        this.jdbcTemplate.update(this.sqlService.getSql("userUpdate"), user.getName(), user.getPassword(), user.getEmail() ,user.getLevel().getValue(), user.getLogin(),
+        this.jdbcTemplate.update("update users set name = ?, password = ?, email = ?, level = ?, login = ?, " +
+                "recommend = ? where id = ?", user.getName(), user.getPassword(), user.getEmail() ,user.getLevel().getValue(), user.getLogin(),
                 user.getRecommend(), user.getId());
     }
 }

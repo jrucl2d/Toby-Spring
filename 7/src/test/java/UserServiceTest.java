@@ -33,6 +33,7 @@ import static org.mockito.Mockito.*;
 import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 import static springbook.user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 
+@Transactional
 public class UserServiceTest {
     private static ApplicationContext ac;
     private UserService userService;
@@ -183,7 +184,6 @@ public class UserServiceTest {
 
     @Test
     @DisplayName("서로 다른 트랜잭션을 임의로 하나의 트랜잭션으로 동기화")
-    @Transactional
     void transactionSync() {
         DefaultTransactionDefinition definition = new DefaultTransactionDefinition(); // 트랜잭션 정의 기본 값 사용
         definition.setReadOnly(true); // 읽기 전용 트랜잭션으로 설정
@@ -197,7 +197,6 @@ public class UserServiceTest {
     }
     @Test
     @DisplayName("서로 다른 트랜잭션을 임의로 하나의 트랜잭션으로 동기화")
-    @Transactional
     void transactionSync2() {
         userDao.deleteAll(); // 트랜잭션 롤백 후 돌아갈 초기 상태를 만들기 위해 트랜잭션 시작 전에 초기화
         assertThat(userDao.getCount()).isEqualTo(0);
@@ -211,6 +210,13 @@ public class UserServiceTest {
 
         transactionManager.rollback(status);
         assertThat(userDao.getCount()).isEqualTo(0); // 롤백됨을 확인
+    }
+    @Test
+    @DisplayName("서로 다른 트랜잭션을 임의로 하나의 트랜잭션으로 동기화")
+    void transactionSync3() {
+        userService.add(users.get(0));
+        userService.add(users.get(1));
+        assertThat(userDao.getCount()).isEqualTo(2); // userDao의 메소드 또한 같은 트랜잭션에서 동작한다.
     }
 
     // Mock UserDao의 스태틱 inner class
