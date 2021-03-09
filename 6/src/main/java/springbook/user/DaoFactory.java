@@ -16,6 +16,7 @@ import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
 import springbook.user.service.TestUserService;
 import springbook.user.service.UserServiceImpl;
+import springbook.user.service.sqlService.JsonSqlService;
 import springbook.user.service.sqlService.SimpleSqlService;
 import springbook.user.service.sqlService.SqlService;
 
@@ -71,19 +72,10 @@ public class DaoFactory {
     }
 
     @Bean
-    public SimpleSqlService sqlService() {
-        SimpleSqlService sqlService = new SimpleSqlService();
-        Map<String, String> sqlMap = new HashMap<>();
-        sqlMap.put("userAdd", "insert into users(id, name, password, email, level, login, recommend) values(?, ?, ?, ?, ?, ?, ?)");
-        sqlMap.put("userGet", "select * from users where id = ?");
-        sqlMap.put("userGetAll", "select * from users order by id");
-        sqlMap.put("userDeleteAll", "delete from users");
-        sqlMap.put("userGetCount", "select count(*) from users");
-        sqlMap.put("userUpdate", "update users set name = ?, password = ?, email = ?, level = ?, login = ?, recommend = ? where id = ?");
-        sqlService.setSqlMap(sqlMap);
-        return sqlService;
+    public JsonSqlService sqlService() {
+        return new JsonSqlService();
     }
-
+    
     @Bean
     public DataSource dataSource() {
         SimpleDriverDataSource dataSource = new SimpleDriverDataSource();

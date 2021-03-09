@@ -1,0 +1,8 @@
+{
+  "userAdd": "insert into users(id, name, password, email, level, login, recommend) values(?, ?, ?, ?, ?, ?, ?)",
+  "userGet": "select * from users where id = ?",
+  "userGetAll": "select * from users order by id",
+  "userDeleteAll": "delete from users",
+  "userGetCount": "select count(*) from users",
+  "userUpdate": "update users set name = ?, password = ?, email = ?, level = ?, login = ?, recommend = ? where id = ?"
+}
