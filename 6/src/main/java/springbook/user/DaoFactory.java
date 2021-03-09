@@ -16,9 +16,7 @@ import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
 import springbook.user.service.TestUserService;
 import springbook.user.service.UserServiceImpl;
-import springbook.user.service.sqlService.JsonSqlService;
-import springbook.user.service.sqlService.SimpleSqlService;
-import springbook.user.service.sqlService.SqlService;
+import springbook.user.service.sqlService.*;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -71,11 +69,27 @@ public class DaoFactory {
         return userDaoJdbc;
     }
 
-    @Bean
-    public JsonSqlService sqlService() {
-        return new JsonSqlService();
+//    @Bean
+//    public BaseSqlService sqlService() {
+//        BaseSqlService service = new BaseSqlService();
+//        service.setSqlReader(sqlReader());
+//        service.setSqlRegistry(sqlRegistry());
+//        return service;
+//    }
+//    @Bean
+//    public JsonSqlReader sqlReader() {
+//        JsonSqlReader reader = new JsonSqlReader();
+//        reader.setSqlmapFile("sql.json");
+//        return reader;
+//    }
+//    @Bean
+//    public HashMapSqlRegistry sqlRegistry() {
+//        return new HashMapSqlRegistry();
+//    }
+    public DefaultSqlService sqlService() {
+        return new DefaultSqlService();
     }
-    
+
     @Bean
     public DataSource dataSource() {
         SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
