@@ -25,6 +25,7 @@ dependencies {
     implementation group: 'org.aspectj', name: 'aspectjtools', version: '1.9.6'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.1'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.1'
+    testImplementation group: 'org.hsqldb', name: 'hsqldb', version: '2.4.1'
 
 }
 

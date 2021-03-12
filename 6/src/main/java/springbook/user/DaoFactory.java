@@ -15,6 +15,7 @@ import springbook.user.aop.TransactionAdvice;
 import springbook.user.dao.UserDaoJdbc;
 import springbook.user.mailSender.DummyMailSender;
 import springbook.user.service.TestUserService;
+import springbook.user.service.UserService;
 import springbook.user.service.UserServiceImpl;
 import springbook.user.service.sqlService.*;
 
@@ -34,7 +35,7 @@ public class DaoFactory {
 
     // 프록시 자동 생성기에 의해서 포인트컷에 해당하는 이 객체가 실체가 아닌 프록시로 생성됨
     @Bean
-    public UserServiceImpl userService() {
+    public UserService userService() {
         UserServiceImpl userService =  new UserServiceImpl();
         userService.setUserDao(userDao());
         userService.setMailSender(mailSender());
@@ -65,30 +66,28 @@ public class DaoFactory {
     @Bean
     public UserDaoJdbc userDao() {
         UserDaoJdbc userDaoJdbc = new UserDaoJdbc(dataSource());
-        userDaoJdbc.setSqlService(sqlService());
         return userDaoJdbc;
     }
 
-//    @Bean
-//    public BaseSqlService sqlService() {
-//        BaseSqlService service = new BaseSqlService();
-//        service.setSqlReader(sqlReader());
-//        service.setSqlRegistry(sqlRegistry());
-//        return service;
-//    }
-//    @Bean
-//    public JsonSqlReader sqlReader() {
-//        JsonSqlReader reader = new JsonSqlReader();
-//        reader.setSqlmapFile("sql.json");
-//        return reader;
-//    }
-//    @Bean
-//    public HashMapSqlRegistry sqlRegistry() {
-//        return new HashMapSqlRegistry();
-//    }
-    public DefaultSqlService sqlService() {
-        return new DefaultSqlService();
+    @Bean
+    public BaseSqlService sqlService() {
+        BaseSqlService service = new BaseSqlService();
+        service.setSqlReader(sqlReader());
+        service.setSqlRegistry(sqlRegistry());
+        return service;
     }
+    @Bean
+    public JsonSqlReader sqlReader() {
+        JsonSqlReader reader = new JsonSqlReader("sql.json");
+        return reader;
+    }
+    @Bean
+    public HashMapSqlRegistry sqlRegistry() {
+        return new HashMapSqlRegistry();
+    }
+//    public DefaultSqlService sqlService() {
+//        return new DefaultSqlService();
+//    }
 
     @Bean
     public DataSource dataSource() {

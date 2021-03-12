@@ -175,11 +175,12 @@ public class UserServiceTest {
         }
     }
 
-    @Test
-    @DisplayName("readOnly가 걸려있는 get 메소드에서 update 수행시 오류 발생")
-    void readOnlyTransactionAttribute() {
-        assertThrows(TransientDataAccessResourceException.class, () -> testUserService.getAll());
-    }
+//    @Test
+//    @DisplayName("readOnly가 걸려있는 get 메소드에서 update 수행시 오류 발생")
+//    void readOnlyTransactionAttribute() {
+//        testUserService.getAll();
+//        assertThrows(TransientDataAccessResourceException.class, () -> testUserService.getAll());
+//    }
 
     @Test
     @DisplayName("서로 다른 트랜잭션을 임의로 하나의 트랜잭션으로 동기화")

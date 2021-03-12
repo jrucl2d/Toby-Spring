@@ -7,15 +7,20 @@ import java.io.IOException;
 import java.util.Map;
 
 public class JsonSqlReader implements SqlReader{
-    private static final String DEFAULT_SQLMAP_FILE = "sql.json";
-    private String sqlmapFile = DEFAULT_SQLMAP_FILE;
+    private String sqlmapFile;
+
+    public JsonSqlReader() {
+    }
+    public JsonSqlReader(String sqlmapFile) {
+        this.sqlmapFile = sqlmapFile;
+    }
 
     public void setSqlmapFile(String sqlmapFile) {
         this.sqlmapFile = sqlmapFile;
     }
     @Override
     public void read(SqlRegistry registry) {
-        String contextPath = "./src/main/java/springbook/user/service/sqlService" + sqlmapFile;
+        String contextPath = "./src/main/java/springbook/user/service/sqlService/" + sqlmapFile;
         ObjectMapper mapper = new ObjectMapper();
         try {
             Map<String, String> tmp = mapper.readValue(new File(contextPath), Map.class);
