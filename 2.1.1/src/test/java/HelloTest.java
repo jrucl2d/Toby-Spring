@@ -10,9 +10,6 @@ import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.context.support.StaticApplicationContext;
 
-import java.io.File;
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class HelloTest {
