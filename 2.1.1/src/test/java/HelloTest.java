@@ -1,12 +1,11 @@
-import ioc.Hello;
-import ioc.Printer;
-import ioc.StringPrinter;
+import ioc.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.context.support.StaticApplicationContext;
@@ -72,5 +71,21 @@ public class HelloTest {
         assertThat(hello).isNotNull();
         hello.print();
         assertThat(printer.toString()).isEqualTo("Hello Child");
+    }
+    @Test
+    void simpleBeanScanning() {
+        ApplicationContext ac = new AnnotationConfigApplicationContext("ioc");
+//        AnnotatedHello hello = ac.getBean("annotatedHello", AnnotatedHello.class); // 자동으로 클래스 이름에서 소문자로 바꾼 빈을 등록해줌
+        AnnotatedHello hello = ac.getBean("myHello", AnnotatedHello.class);
+        assertThat(hello).isNotNull();
+    }
+    @Test
+    void simpleBeanScanning2() {
+        ApplicationContext ac = new AnnotationConfigApplicationContext(AnnotatedHelloConfig.class);
+        AnnotatedHello hello = ac.getBean("annotatedHello", AnnotatedHello.class);
+        AnnotatedHelloConfig config = ac.getBean("annotatedHelloConfig", AnnotatedHelloConfig.class);
+        assertThat(hello).isNotNull();
+        assertThat(config).isNotNull();
+        assertThat(config.annotatedHello()).isSameAs(hello); // new 해서 실행해도 같은 오브젝트(싱글톤)
     }
 }
